@@ -80,7 +80,7 @@
 	FALLBACK
 	/other 404.html
 	
-``
+```
 
 > 其中第一行必须以CACHE MANIFEST开头，后面可跟若干字符注释，注释从#号开始，更在CACHE MANIFEST 行后的文件，每行留出一个，这些文件是需要缓存的文件。一次content.css会被缓存，不需要访问网络。
 >
