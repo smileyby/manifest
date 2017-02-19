@@ -115,5 +115,102 @@
 
 ``` 
 
+> 以下是其他属性和方法介绍：
+> 
+> * status：返回当前页面的应用缓存状态，通常开始应用化黁的页面可能返回1，其他页面返回0
+> * update()：手动触发缓存更新
+> 
+> (1) 若有更新，则依次触发①检查事件（Checking event）②下载事件（Downloading event）③下载进度事件（Progress event）④更新完成事件（UpdateReady event）
+> 
+> (2) 若无更新，则依次触发①检查事件（Checking event），②无更新事件（NoUpdate event）
+> 
+> 在未开启应用缓存的页面调用将抛出 Uncaught DOMException 错误
+> 
+> update()：方法通常在长时间不关闭的页面使用，比如说邮箱应用，用于定期检测可能的更新
+> * abort()：取消应用缓存的更新，可用于节省有限的网络速度
+> * swapCache()：如果存在一个更新版本的应用缓存，那么它将切换过去，否则将抛出 Uncaught DOMException 错误，通常，我们会在uodateready事件触发一周手动调用 swapCache() 方法，swapCache的切换只对后续加载的缓存文件有效，已经加载成功额资源并不会重新加载。
+> 
+> 那么如何利用好上述api更新一个页面的应用缓存呢？[Beginner’s Guide to Using the Application Cache](https://www.html5rocks.com/en/tutorials/appcache/beginner/) -文中提供了如下的样板方法：
+
+```js
+
+	// Check if a new cache is available on page load.
+	widow.addEventListener('load', function(e) {
+		window.applicationCache.addEventListener('updateready', function(e) {
+			if (window.applicationCache.status == window.applicationCache.UPDATEREADY) {
+				// Brower download a new app cache
+				// Swap it in and reload the page to get the new hotness
+				window.applicationCache.swapCache();
+				if(confirm('A new version of this site is available. Load it?')){
+					window.location.reload();
+				}
+			} else {
+				// Mainfest didn`t change. Nothing new to sever.
+			}
+			
+		}, false);
+	}, false);
+
+```
+
+### mainfest缓存独立性
+
+> 1. manifest的花村和浏览器默认缓存是两套机制，相互独立，并且不受浏览器缓存大小限制（Chrome 下测试结果）
+> 
+> 2. 各个manifest文件的缓存相互独立，各自在独立的区域进行缓存，即使是缓存同一个文件，也可能由于缓存的版本不一致，而造成各个页面资源不一致。
+
+### manifest缓存规则
+
+> 1. 遵循全量缓存的规则，即：manifest文件改动后，将重新缓存一边所有文件（包括html本身和动态添加的需要缓存的文件，即使缓存列表中没有该html），第一次缓存过程中，如果出现缓存失败，那么地位低访问，又将重新缓存一边所有文件，以此类推。
+> 
+> 2. manifest文件本身不能写进缓存清单，否则联通连同html和资源在其缓存失效之前，将永远不能获得更新
+> 
+> 3. 即使manifest文件丢失，缓存依然有效，不过从此以后引入的manifest的html，将永远不能获得更新。
+
+### webview的缓存现象
+
+> 通常，webview的缓存有如下三种现象：
+> *普通网页（无manifest文件），不受manifest缓存影响，缓存只走http cache
+> * 包含manifest文件的网页，缓存文件只受manifest影响（只有manifest文件改变时才会更新缓存资源），缓存资源完全与http cache无关，但是NETWORK 段落后需要访问网络的文件，将继续走 http cache
+> * webview直接加载manifest缓存过的文件时，有限加载第一个manifest缓存的该文件，如果没找到manifest缓存，那么它将自动虚招http cache 或者 在线加载
+
+### 最佳实践
+
+> * 通常只是用一个manifest文件，并保证缓存文件尽可能的少，以减小manifest每次更新清单中文件所消耗的时间和流量
+> * 如果一定要是两个及两个以上的manifest文件，缓存温江尽量不要相同
+> * 如果以上两条都不能保证，那么请确保尽可能在manifest缓存的状态更新时，主动刷新网页（此时并不能保证不同网页之间同一个缓存文件版本一致）
+
+###　具体落地步骤
+
+> 1. 如果缓存的文件需要加参数运行，建议将参数内容加到hash中，如cached-page.html#parameterName=value
+> 
+> 2.　manifest的引入可以使用绝对路径，如果你使用的是绝对路径，那么你的manifest文件必须和你的站点处于同一个域名下
+>
+> 3. manifest文件可以保存为任意的扩展名，但是响应头中以下字段须取以下定值，以保证manifest'文件被正确解析，并且它没有http缓存
+
+```js
+	
+	Content-Type: text/cache-manifest
+	Cache-Control: max-page=0
+	Expries: [CURRENT TIME]
+	
+```
+
+### 如何更新缓存
+
+> 1. 更新骂你粉丝团文件后，webview将自动更新缓存
+> 
+> 2. js更新缓存（手动触发manifest更新）：window.applicationCache.update();
+
+### 其他
+
+> chrome浏览器下通过访问[chrome://appcache-internals/](chrome://appcache-internals/)可以查看缓存在本地的资源文件
+> 
+> 本文参考一篇MDN的文章以及HTML5 Rocks的[Beginner’s Guide to Using the Application Cache](http://www.html5rocks.com/en/tutorials/appcache/beginner/)一文，还有两个个连接可供大家比较阅读。
+> * [Cache manifest in HTML5](https://en.wikipedia.org/wiki/Cache_manifest_in_HTML5)on Wikipedia
+> * [Offline Web Applications](http://www.w3.org/TR/offline-webapps/)W3C Working Group Note
+
+
+
 
 
