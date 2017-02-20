@@ -2,8 +2,3 @@ CACHE MANIFEST
 # v1.0.0
 /app.css
 
-NETWORK
-/app.js
-
-FALLBACK
-/other 404.html
